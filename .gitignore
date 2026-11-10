@@ -1,0 +1,9 @@
+release/
+debug/
+Makefile*
+*.stash
+*.o
+moc_*
+ui_*
+qrc_*
+.release*

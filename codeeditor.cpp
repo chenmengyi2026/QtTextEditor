@@ -15,6 +15,7 @@ private:
 
 CodeEditor::CodeEditor(QWidget *parent) : QPlainTextEdit(parent)
 {
+    m_showLineNumbers = true;
     m_lineNumberArea = new LineNumberArea(this);
 
     connect(this, &CodeEditor::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
@@ -25,11 +26,25 @@ CodeEditor::CodeEditor(QWidget *parent) : QPlainTextEdit(parent)
     highlightCurrentLine();
 }
 
+void CodeEditor::setLineNumbersVisible(bool visible)
+{
+    m_showLineNumbers = visible;
+    m_lineNumberArea->setVisible(visible);
+    updateLineNumberAreaWidth(0);
+    viewport()->update();
+}
+
 int CodeEditor::lineNumberAreaWidth()
 {
+    if (!m_showLineNumbers)
+        return 0;
+
     int digits = 1;
     int max = qMax(1, blockCount());
-    while (max >= 10) { max /= 10; ++digits; }
+    while (max >= 10) {
+        max /= 10;
+        ++digits;
+    }
     int space = 12 + fontMetrics().horizontalAdvance(QLatin1Char('9')) * digits;
     return space;
 }
@@ -43,29 +58,34 @@ void CodeEditor::resizeEvent(QResizeEvent *event)
 {
     QPlainTextEdit::resizeEvent(event);
     QRect cr = contentsRect();
-    m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+    m_lineNumberArea->setGeometry(QRect(cr.left(), cr.top(),
+                                       lineNumberAreaWidth(), cr.height()));
 }
 
 void CodeEditor::highlightCurrentLine()
 {
     QList<QTextEdit::ExtraSelection> extraSelections;
     if (!isReadOnly()) {
-        QTextEdit::ExtraSelection sel;
+        QTextEdit::ExtraSelection selection;
         QColor lineColor = QColor(Qt::yellow).lighter(160);
-        sel.format.setBackground(lineColor);
-        sel.format.setProperty(QTextFormat::FullWidthSelection, true);
-        sel.cursor = textCursor();
-        sel.cursor.clearSelection();
-        extraSelections.append(sel);
+        selection.format.setBackground(lineColor);
+        selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+        selection.cursor = textCursor();
+        selection.cursor.clearSelection();
+        extraSelections.append(selection);
     }
     setExtraSelections(extraSelections);
 }
 
 void CodeEditor::updateLineNumberArea(const QRect &rect, int dy)
 {
-    if (dy) m_lineNumberArea->scroll(0, dy);
-    else m_lineNumberArea->update(0, rect.y(), m_lineNumberArea->width(), rect.height());
-    if (rect.contains(viewport()->rect())) updateLineNumberAreaWidth(0);
+    if (dy)
+        m_lineNumberArea->scroll(0, dy);
+    else
+        m_lineNumberArea->update(0, rect.y(), m_lineNumberArea->width(), rect.height());
+
+    if (rect.contains(viewport()->rect()))
+        updateLineNumberAreaWidth(0);
 }
 
 void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
@@ -82,7 +102,7 @@ void CodeEditor::lineNumberAreaPaintEvent(QPaintEvent *event)
         if (block.isVisible() && bottom >= event->rect().top()) {
             QString number = QString::number(blockNumber + 1);
             painter.setPen(Qt::gray);
-            painter.drawText(0, top, m_lineNumberArea->width()-4,
+            painter.drawText(0, top, m_lineNumberArea->width() - 4,
                              fontMetrics().height(), Qt::AlignRight, number);
         }
         block = block.next();
